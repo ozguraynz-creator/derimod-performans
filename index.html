@@ -1,611 +1,173 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Derimod Performans Paneli</title>
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-
-  <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "lucide-react": "https://esm.sh/lucide-react@0.294.0"
-      }
-    }
-  </script>
-
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
-  <style>
-    html, body, #root { 
-      width: 100%; 
-      height: 100%; 
-      margin: 0; 
-      padding: 0; 
-      overflow: hidden; 
-      background-color: #f8fafc; 
-    }
-    .overflow-y-auto, .overflow-x-auto { -webkit-overflow-scrolling: touch; }
-    .no-spinners::-webkit-inner-spin-button, .no-spinners::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-    .no-spinners { -moz-appearance: textfield; }
-    button, input { touch-action: manipulation; }
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-    @media print {
-      .no-print { display: none !important; }
-      body, html, #root { overflow: visible !important; height: auto !important; background: white !important; }
-      #printable-area { padding: 0 !important; overflow: visible !important; height: auto !important; }
-      table { width: 100% !important; border-collapse: collapse; }
-      input { border: none !important; background: transparent !important; }
-      @page { size: landscape a3; margin: 10mm; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mağaza Performans Paneli</title>
+    <style>
+        /* Modern ve Temiz Tasarım - Siyah Yan Panel İptal Edildi */
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { margin: 0; padding: 0; background-color: #f4f6f9; color: #333; overflow-x: hidden; }
+        
+        /* Üst Menü ve Grafik Logo */
+        .header {
+            background-color: #ffffff;
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .logo img { height: 40px; } /* Grafik Logo */
+        .nav-buttons button {
+            background-color: #1a1a1a; color: white; border: none; padding: 10px 15px;
+            margin-left: 10px; border-radius: 5px; font-weight: bold; cursor: pointer;
+        }
+        .nav-buttons button.active { background-color: #d32f2f; }
+        
+        /* Ana İçerik Alanı */
+        .container { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .panel { display: none; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        .panel.active { display: block; }
+        
+        /* Tablo ve Form Tasarımları */
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        input[type="number"], input[type="text"] {
+            width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 16px;
+        }
+        
+        /* Mobil Uyumlu Tablo (Sütun Aralıkları Daraltıldı) */
+        .table-responsive { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 12px 10px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
+        th { background-color: #f8f9fa; font-weight: bold; color: #555; }
+        
+        .status-badge {
+            background-color: #4CAF50; color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold;
+        }
+        .status-badge.saving { background-color: #ff9800; }
+    </style>
 </head>
 <body>
-  <div id="root"></div>
 
-  <script type="text/babel" data-type="module">
-    import React, { useState, useEffect, useMemo } from 'react';
-    import { createRoot } from 'react-dom/client';
-    import { 
-      Plus, Trash2, Download, TrendingUp, TrendingDown, 
-      ArrowUpRight, LayoutDashboard, Users, 
-      LogOut, AlertCircle, Briefcase, Activity, Menu, X, 
-      CheckCircle2, Info, Calculator, Lock, ToggleLeft, ToggleRight, Save,
-      Maximize, Minimize, Image as ImageIcon, FileText
-    } from 'lucide-react';
+    <div class="header">
+        <div class="logo">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Derimod_logo.svg/2560px-Derimod_logo.svg.png" alt="Derimod Logo">
+        </div>
+        <div class="nav-buttons">
+            <button id="btn-ana" class="active" onclick="switchTab('ana-sayfa', 'btn-ana')">Ana Sayfa</button>
+            <button id="btn-personel" onclick="switchTab('personel-paneli', 'btn-personel')">Personeller</button>
+        </div>
+    </div>
 
-    const CATEGORIES = [
-      { id: 'shoes', label: 'Ayakkabı' },
-      { id: 'bags', label: 'Çanta' },
-      { id: 'clothing', label: 'Giysi' },
-      { id: 'belts', label: 'Kemer' },
-      { id: 'socks', label: 'Çorap' },
-      { id: 'wallets', label: 'Cüzdan' },
-      { id: 'care', label: 'Bakım' }
-    ];
+    <div class="container">
+        <div id="ana-sayfa" class="panel active">
+            <h2>Ürün Adet Performansı <span id="sync-status" class="status-badge">Güncel</span></h2>
+            <div class="input-group">
+                <label>Mağaza Beklenen Toplam Adet</label>
+                <input type="number" id="beklenen-adet" placeholder="Beklenen adeti girin..." oninput="autoSave()">
+            </div>
+            <div class="input-group">
+                <label>Mağaza Gerçekleşen Toplam Adet</label>
+                <input type="number" id="gerceklesen-adet" placeholder="Gerçekleşen adeti girin..." oninput="autoSave()">
+            </div>
+            </div>
 
-    const DEFAULT_EMPLOYEES = [
-      {
-        id: 1, name: 'Ahmet Yılmaz', workingDays: 26,
-        shoes_target: 500, shoes_actual: 360,
-        bags_target: 120, bags_actual: 15,
-        clothing_target: 80, clothing_actual: 12,
-        belts_target: 40, belts_actual: 8,
-        socks_target: 300, socks_actual: 40,
-        wallets_target: 50, wallets_actual: 5,
-        care_target: 200, care_actual: 18
-      },
-      {
-        id: 2, name: 'Ayşe Kaya', workingDays: 20,
-        shoes_target: 400, shoes_actual: 280,
-        bags_target: 100, bags_actual: 20,
-        clothing_target: 70, clothing_actual: 15,
-        belts_target: 30, belts_actual: 5,
-        socks_target: 200, socks_actual: 45,
-        wallets_target: 40, wallets_actual: 8,
-        care_target: 150, care_actual: 22
-      }
-    ];
-
-    const DEFAULT_STORE_TARGETS = {
-      shoes: 1500, bags: 300, clothing: 200, belts: 100, socks: 800, wallets: 150, care: 500
-    };
-
-    const App = () => {
-      const loadData = (key, defaultValue) => {
-        const saved = localStorage.getItem(key);
-        if (saved !== null) return JSON.parse(saved);
-        return defaultValue;
-      };
-
-      const [activeTab, setActiveTab] = useState('dashboard');
-      const [daysInMonth, setDaysInMonth] = useState(() => loadData('derimod_days', 31));
-      const [currentDay, setCurrentDay] = useState(() => loadData('derimod_current', 25));
-      const [employees, setEmployees] = useState(() => loadData('derimod_employees', DEFAULT_EMPLOYEES));
-      const [isAutoDistribute, setIsAutoDistribute] = useState(() => loadData('derimod_auto_dist', false));
-      const [storeTargets, setStoreTargets] = useState(() => loadData('derimod_store_targets', DEFAULT_STORE_TARGETS));
-
-      const [isExporting, setIsExporting] = useState(false);
-      const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-      const [toast, setToast] = useState(null);
-      const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-      const [isFullscreen, setIsFullscreen] = useState(false);
-
-      useEffect(() => {
-        localStorage.setItem('derimod_days', JSON.stringify(daysInMonth));
-        localStorage.setItem('derimod_current', JSON.stringify(currentDay));
-        localStorage.setItem('derimod_employees', JSON.stringify(employees));
-        localStorage.setItem('derimod_auto_dist', JSON.stringify(isAutoDistribute));
-        localStorage.setItem('derimod_store_targets', JSON.stringify(storeTargets));
-      }, [daysInMonth, currentDay, employees, isAutoDistribute, storeTargets]);
-
-      useEffect(() => {
-        const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
-        document.addEventListener('fullscreenchange', handleFsChange);
-        return () => document.removeEventListener('fullscreenchange', handleFsChange);
-      }, []);
-
-      const showToast = (message, type = 'info') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3500);
-      };
-
-      const handleSave = () => {
-        setHasUnsavedChanges(false);
-        showToast('Tüm değişiklikler başarıyla kaydedildi!', 'success');
-      };
-
-      const markAsChanged = () => setHasUnsavedChanges(true);
-
-      const toggleFullScreen = () => {
-        if (!document.fullscreenElement) {
-          const docElm = document.documentElement;
-          if (docElm.requestFullscreen) docElm.requestFullscreen().catch(() => showToast('Tarayıcınız tam ekranı desteklemiyor.', 'error'));
-          else if (docElm.webkitRequestFullscreen) docElm.webkitRequestFullscreen().catch(() => showToast('Desteklenmiyor.', 'error'));
-        } else {
-          if (document.exitFullscreen) document.exitFullscreen();
-          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-        }
-      };
-
-      const exportImage = () => {
-        if (window.html2canvas) {
-          setIsExporting(true);
-          showToast('Yüksek çözünürlüklü fotoğraf hazırlanıyor...', 'info');
-          
-          const element = document.getElementById('printable-area');
-          const originalHeight = element.style.height;
-          const originalOverflow = element.style.overflow;
-          element.style.height = 'auto';
-          element.style.overflow = 'visible';
-
-          const scale = window.devicePixelRatio || 2; 
-
-          window.html2canvas(element, { scale: scale, useCORS: true, backgroundColor: '#f8fafc', windowHeight: element.scrollHeight }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = activeTab === 'dashboard' ? `Derimod_AnaSayfa_Gun${currentDay}.png` : `Derimod_PersonelDetay_Gun${currentDay}.png`;
-            link.href = canvas.toDataURL('image/png', 1.0);
-            link.click();
-            
-            element.style.height = originalHeight;
-            element.style.overflow = originalOverflow;
-            
-            setIsExporting(false);
-            showToast('Fotoğraf galerinize/indirilenlere kaydedildi.', 'success');
-          }).catch(() => {
-            element.style.height = originalHeight;
-            element.style.overflow = originalOverflow;
-            setIsExporting(false);
-            showToast('Fotoğraf çekilirken bir hata oluştu.', 'error');
-          });
-        }
-      };
-
-      const exportPDF = () => {
-        if (window.html2pdf) {
-          setIsExporting(true);
-          showToast('PDF belgesi oluşturuluyor...', 'info');
-          const element = document.getElementById('printable-area');
-          const opt = {
-            margin: [0.3, 0.3, 0.3, 0.3],
-            filename: activeTab === 'dashboard' ? `Derimod_AnaSayfa_Gun${currentDay}.pdf` : `Derimod_PersonelDetay_Gun${currentDay}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
-            jsPDF: { unit: 'in', format: 'a3', orientation: 'landscape' }
-          };
-          window.html2pdf().set(opt).from(element).save().then(() => {
-            setIsExporting(false);
-            showToast('PDF başarıyla indirildi.', 'success');
-          });
-        }
-      };
-
-      const handleMenuClick = (tab) => {
-        setActiveTab(tab);
-        setIsMobileMenuOpen(false);
-      };
-
-      const addEmployee = () => {
-        const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
-        const newEmp = { id: newId, name: '', workingDays: 26 };
-        CATEGORIES.forEach(cat => { newEmp[`${cat.id}_target`] = ''; newEmp[`${cat.id}_actual`] = ''; });
-        setEmployees([...employees, newEmp]);
-        markAsChanged();
-        showToast('Yeni personel satırı eklendi.', 'success');
-      };
-
-      const removeEmployee = (id) => {
-        if (window.confirm('Bu personeli silmek istediğinize emin misiniz?')) {
-          setEmployees(employees.filter(e => e.id !== id));
-          markAsChanged();
-          showToast('Personel başarıyla silindi.', 'info');
-        }
-      };
-
-      const handleInputChange = (id, field, value) => {
-        setEmployees(employees.map(emp => {
-          if (emp.id === id) {
-            let finalValue = value;
-            if (field !== 'name') finalValue = value === '' ? '' : Number(value);
-            return { ...emp, [field]: finalValue };
-          }
-          return emp;
-        }));
-        markAsChanged();
-      };
-
-      const handleTimeChange = (setter, value) => {
-        if (value === '') { setter(''); markAsChanged(); return; }
-        const num = parseInt(value, 10);
-        setter(isNaN(num) ? '' : num);
-        markAsChanged();
-      };
-
-      const totalWorkingDays = useMemo(() => employees.reduce((sum, emp) => sum + (Number(emp.workingDays) || 0), 0), [employees]);
-
-      const getEffectiveTarget = (emp, categoryId) => {
-        if (isAutoDistribute) {
-          const storeTargetForCat = Number(storeTargets[categoryId]) || 0;
-          const empWorkingDays = Number(emp.workingDays) || 0;
-          if (totalWorkingDays === 0) return 0;
-          return Math.round((storeTargetForCat * empWorkingDays) / totalWorkingDays);
-        }
-        return emp[`${categoryId}_target`];
-      };
-
-      const calculatePerformance = (target, actual) => {
-        const numTarget = Number(target) || 0; const numActual = Number(actual) || 0;
-        const numDays = Number(daysInMonth) || 0; const numCurrent = Number(currentDay) || 0;
-
-        if (numTarget === 0 || numDays === 0 || numCurrent === 0) 
-          return { percent: 0, status: 'none', expected: 0, dailyTarget: 0, projected: 0, difference: 0 };
-
-        const dailyTarget = numTarget / numDays;
-        const expectedToDate = dailyTarget * numCurrent;
-        const performancePercent = expectedToDate === 0 ? 0 : (numActual / expectedToDate) * 100;
-        const projected = (numActual / numCurrent) * numDays;
-        const difference = numActual - expectedToDate;
-
-        let status = 'down';
-        if (performancePercent >= 100) status = 'up';
-        else if (performancePercent >= 80) status = 'diagonal';
-
-        return { percent: performancePercent, status, expected: expectedToDate, dailyTarget, projected, difference };
-      };
-
-      const storeStats = useMemo(() => {
-        let totalTarget = 0; let totalActual = 0;
-        if (isAutoDistribute) {
-          CATEGORIES.forEach(cat => totalTarget += (Number(storeTargets[cat.id]) || 0));
-          employees.forEach(emp => CATEGORIES.forEach(cat => totalActual += (Number(emp[`${cat.id}_actual`]) || 0)));
-        } else {
-          employees.forEach(emp => {
-            CATEGORIES.forEach(cat => {
-              totalTarget += Number(emp[`${cat.id}_target`]) || 0;
-              totalActual += Number(emp[`${cat.id}_actual`]) || 0;
-            });
-          });
-        }
-        const numDays = Number(daysInMonth) || 0; const numCurrent = Number(currentDay) || 0;
-        const expectedToDate = numDays > 0 ? (totalTarget / numDays) * numCurrent : 0;
-        const runRate = expectedToDate > 0 ? (totalActual / expectedToDate) * 100 : 0;
-        return { totalTarget, totalActual, expectedToDate, runRate };
-      }, [employees, daysInMonth, currentDay, isAutoDistribute, storeTargets]);
-
-      const renderTrendIcon = (status, percent) => {
-        if (status === 'none') return <span className="text-gray-300">-</span>;
-        if (status === 'up') return <TrendingUp size={16} className="text-emerald-500 font-bold md:w-[18px] md:h-[18px]" />;
-        if (status === 'diagonal') return <ArrowUpRight size={16} className="text-amber-500 font-bold md:w-[18px] md:h-[18px]" />;
-        return <TrendingDown size={16} className="text-rose-500 font-bold md:w-[18px] md:h-[18px]" />;
-      };
-
-      // RENDER: PERSONELLER SEKME İÇERİĞİ
-      const renderPersonnelsTab = () => (
-        <div className="space-y-6 animate-in fade-in duration-300 pb-20">
-          {employees.map(emp => (
-            <div key={emp.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden break-inside-avoid">
-              <div className="bg-slate-900 text-white px-4 py-3 flex justify-between items-center">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                  <Users size={20} className="text-slate-400" />
-                  {emp.name || 'İsimsiz Personel'}
-                </h3>
-                <div className="text-xs md:text-sm bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 font-medium">
-                  <span>Çalışma:</span> <span className="text-emerald-400 font-bold">{emp.workingDays} Gün</span>
-                </div>
-              </div>
-              <div className="overflow-x-auto relative z-0">
-                <table className="w-full text-xs md:text-sm text-left whitespace-nowrap min-w-max">
-                  <thead>
-                    <tr className="bg-slate-100 text-slate-600 border-b border-slate-200">
-                      <th className="px-4 py-3 font-bold uppercase tracking-wider">Kategori</th>
-                      <th className="px-3 py-3 font-bold uppercase tracking-wider text-center" title="Aylık Toplam Hedef">Aylık Hdf</th>
-                      <th className="px-3 py-3 font-bold uppercase tracking-wider text-center" title="Günlük Satılması Gereken İdeal Adet">Günlük İdeal</th>
-                      <th className="px-3 py-3 font-bold uppercase tracking-wider text-center text-indigo-700 bg-indigo-50/50" title={`${currentDay}. Gün İtibariyle Olması Gereken`}>{currentDay}. Gün Hedefi</th>
-                      <th className="px-3 py-3 font-bold uppercase tracking-wider text-center text-slate-900 bg-slate-50">Gerçekleşen</th>
-                      <th className="px-3 py-3 font-bold uppercase tracking-wider text-center">Sapma</th>
-                      <th className="px-3 py-3 font-bold uppercase tracking-wider text-center" title="Mevcut hız ile ay sonu tahmini kapanış">Ay Sonu Tahmini</th>
-                      <th className="px-4 py-3 font-bold uppercase tracking-wider text-center">Durum</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {CATEGORIES.map(cat => {
-                      const target = getEffectiveTarget(emp, cat.id); 
-                      const actual = emp[`${cat.id}_actual`];
-                      const perf = calculatePerformance(target, actual);
-                      return (
-                        <tr key={cat.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-4 py-3 font-bold text-slate-700">{cat.label}</td>
-                          <td className="px-3 py-3 text-center text-slate-500 font-medium">{target || '-'}</td>
-                          <td className="px-3 py-3 text-center text-slate-500">{target > 0 ? perf.dailyTarget.toFixed(1) : '-'}</td>
-                          <td className="px-3 py-3 text-center font-bold text-indigo-700 bg-indigo-50/30">{target > 0 ? Math.round(perf.expected) : '-'}</td>
-                          <td className="px-3 py-3 text-center font-black text-slate-900 bg-slate-50/50">{actual || '-'}</td>
-                          <td className={`px-3 py-3 text-center font-bold ${perf.difference >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                            {target > 0 ? `${perf.difference > 0 ? '+' : ''}${Math.round(perf.difference)}` : '-'}
-                          </td>
-                          <td className="px-3 py-3 text-center font-bold text-amber-500">{target > 0 ? Math.round(perf.projected) : '-'}</td>
-                          <td className="px-4 py-3 text-center">
-                            <div className="flex items-center justify-center gap-1.5 font-bold text-slate-700">
-                              {renderTrendIcon(perf.status, perf.percent)}
-                              {perf.percent > 0 ? `%${Math.round(perf.percent)}` : '-'}
-                            </div>
-                          </td>
+        <div id="personel-paneli" class="panel">
+            <h2>Personel Performans ve Mesai Paneli</h2>
+            <div class="input-group">
+                <label>Personel Filtrele / Ara</label>
+                <input type="text" id="personel-arama" placeholder="İsim yazarak filtrele...">
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Personel Adı</th>
+                            <th>Olması Gereken</th>
+                            <th>Gerçekleşen</th>
+                            <th>Ay Sonu Hedefi</th>
+                            <th>Mesai (Saat)</th>
                         </tr>
-                      );
-                    })}
-                  </tbody>
+                    </thead>
+                    <tbody id="personel-tablosu">
+                        <tr>
+                            <td><input type="text" value="Yeni Personel" style="width: 120px;" oninput="autoSave()"></td>
+                            <td><input type="number" placeholder="0" oninput="autoSave()"></td>
+                            <td><input type="number" placeholder="0" oninput="autoSave()"></td>
+                            <td><input type="number" placeholder="0" oninput="autoSave()"></td>
+                            <td><input type="number" placeholder="0" oninput="autoSave()"></td>
+                        </tr>
+                    </tbody>
                 </table>
-              </div>
             </div>
-          ))}
         </div>
-      );
+    </div>
 
-      // RENDER: ANA SAYFA SEKME İÇERİĞİ
-      const renderDashboardTab = () => (
-        <div className="animate-in fade-in duration-300 pb-20">
-          <div className="bg-white rounded-xl p-3 md:p-4 border border-slate-200 shadow-sm mb-4 no-print">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <h3 className="text-sm md:text-base font-bold text-slate-800 flex items-center gap-2">
-                  <Calculator size={18} className={isAutoDistribute ? "text-emerald-500" : "text-slate-400"} /> 
-                  Otomatik Dağıtım Motoru
-                </h3>
-              </div>
-              <button onClick={() => { setIsAutoDistribute(!isAutoDistribute); markAsChanged(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-full font-bold transition-all border text-xs md:text-sm ${isAutoDistribute ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                {isAutoDistribute ? <ToggleRight size={20} className="text-emerald-500" /> : <ToggleLeft size={20} className="text-slate-400" />}
-                {isAutoDistribute ? 'Aktif' : 'Kapalı'}
-              </button>
-            </div>
-            {isAutoDistribute && (
-              <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
-                {CATEGORIES.map(cat => (
-                  <div key={cat.id} className="bg-slate-50 p-2 rounded-lg border border-slate-200">
-                    <label className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">{cat.label}</label>
-                    <input type="number" value={storeTargets[cat.id]} onChange={(e) => { setStoreTargets({...storeTargets, [cat.id]: e.target.value === '' ? '' : Number(e.target.value)}); markAsChanged(); }} className="w-full bg-white border border-slate-300 rounded p-1.5 font-bold text-slate-800 outline-none text-center text-xs md:text-sm no-spinners" placeholder="0"/>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-            <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
-              <div><p className="text-[10px] md:text-xs font-medium text-slate-500 mb-0.5">Mağaza Toplam Hedefi</p><h3 className="text-lg md:text-xl font-bold text-slate-900">{storeStats.totalTarget.toLocaleString('tr-TR')}</h3></div>
-              <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-600"><Briefcase size={16} /></div>
-            </div>
-            <div className="bg-white rounded-xl p-3 border border-slate-200 shadow-sm flex items-center justify-between">
-              <div><p className="text-[10px] md:text-xs font-medium text-slate-500 mb-0.5">Gerçekleşen Satış</p><h3 className="text-lg md:text-xl font-bold text-slate-900">{storeStats.totalActual.toLocaleString('tr-TR')}</h3></div>
-              <div className="w-8 h-8 bg-emerald-50 rounded-full flex items-center justify-center text-emerald-600"><TrendingUp size={16} /></div>
-            </div>
-            <div className="bg-slate-900 rounded-xl p-3 border border-slate-800 shadow-sm flex items-center justify-between relative overflow-hidden">
-              <div className="relative z-10">
-                <p className="text-[10px] md:text-xs font-medium text-slate-400 mb-0.5">Mağaza Run-Rate</p>
-                <div className="flex items-baseline gap-2">
-                  <h3 className="text-xl md:text-2xl font-bold text-white">% {storeStats.runRate.toFixed(1)}</h3>
-                  <span className={`text-[9px] font-medium ${storeStats.runRate >= 100 ? 'text-emerald-400' : storeStats.runRate >= 80 ? 'text-amber-400' : 'text-rose-400'}`}>
-                    {storeStats.runRate >= 100 ? 'Hedefte' : storeStats.runRate >= 80 ? 'Dikkat!' : 'Geride'}
-                  </span>
-                </div>
-              </div>
-              <Activity size={50} className="absolute -right-2 -bottom-2 text-white opacity-5" />
-            </div>
-          </div>
+        // Senin özel Firebase bağlantı kodun
+        const firebaseConfig = {
+            apiKey: "AIzaSyAYGHpZqt2JhiS-w9_3Y5c4BzXHnzV0Wi4",
+            authDomain: "magaza-performans.firebaseapp.com",
+            databaseURL: "https://magaza-performans-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "magaza-performans",
+            storageBucket: "magaza-performans.firebasestorage.app",
+            messagingSenderId: "516180985850",
+            appId: "1:516180985850:web:e1772185f96d8dbf9c8643"
+        };
 
-          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-end mb-3 gap-3 no-print">
-            <div className="flex bg-white px-2 py-1.5 rounded-lg border border-slate-200 text-[10px] md:text-xs justify-center sm:justify-start flex-wrap gap-2">
-              <div className="flex items-center gap-1"><TrendingUp size={12} className="text-emerald-500"/> <span className="font-medium">≥ %100</span></div>
-              <div className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></div>
-              <div className="flex items-center gap-1"><ArrowUpRight size={12} className="text-amber-500"/> <span className="font-medium">%80-99</span></div>
-              <div className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></div>
-              <div className="flex items-center gap-1"><TrendingDown size={12} className="text-rose-500"/> <span className="font-medium">&lt; %80</span></div>
-            </div>
-            <button onClick={addEmployee} className="flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 text-white rounded-lg transition-colors font-semibold text-xs md:text-sm">
-              <Plus size={16} /> Yeni Personel
-            </button>
-          </div>
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto relative z-0">
-            <table className="w-full text-[10px] md:text-sm text-left whitespace-nowrap min-w-max">
-              <thead>
-                <tr className="bg-slate-900 text-white">
-                  <th rowSpan="2" className="p-2 md:p-3 font-bold border-b border-r border-slate-700 bg-slate-900 sticky left-0 z-20 w-24 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">PERSONEL</th>
-                  <th rowSpan="2" className="p-1 font-semibold text-center border-b border-r border-slate-700 bg-slate-800 w-10 text-[9px]">Ç.GÜN</th>
-                  {CATEGORIES.map(cat => <th key={cat.id} colSpan="3" className="px-1 py-1.5 font-semibold text-center border-b border-r border-slate-700 bg-slate-800">{cat.label}</th>)}
-                  <th rowSpan="2" className="p-1 font-semibold text-center border-b border-slate-700 w-8 no-print">Sil</th>
-                </tr>
-                <tr className="bg-slate-100 text-slate-600 text-[8px] md:text-[10px] uppercase font-bold">
-                  {CATEGORIES.map(cat => (
-                    <React.Fragment key={`${cat.id}-sub`}>
-                      <th className="py-1 border-b border-r border-slate-200 text-center w-10">{isAutoDistribute ? <Lock size={8} className="inline mr-0.5 text-slate-400"/> : ''}Hdf</th>
-                      <th className="py-1 border-b border-r border-slate-200 text-center w-10 text-slate-900">Grç</th>
-                      <th className="py-1 border-b border-r border-slate-200 text-center w-10">%</th>
-                    </React.Fragment>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="text-slate-700 font-medium">
-                {employees.map((emp) => (
-                  <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="p-0 border-r border-slate-200 sticky left-0 bg-white z-10">
-                      <input type="text" value={emp.name} onChange={(e) => handleInputChange(emp.id, 'name', e.target.value)} className="w-full h-full px-2 py-2 md:py-3 bg-transparent border-none outline-none font-bold text-slate-800 text-[10px] md:text-sm" placeholder="İsim..."/>
-                    </td>
-                    <td className="p-0 border-r border-slate-200 bg-slate-50/30">
-                      <input type="number" value={emp.workingDays} onChange={(e) => handleInputChange(emp.id, 'workingDays', e.target.value)} className={`w-full h-full px-1 py-2 text-center bg-transparent border-none outline-none font-bold no-spinners text-[10px] md:text-sm ${isAutoDistribute ? 'text-emerald-600 bg-emerald-50/30' : 'text-slate-600'}`} placeholder="-"/>
-                    </td>
-                    {CATEGORIES.map(cat => {
-                      const target = getEffectiveTarget(emp, cat.id); 
-                      const actual = emp[`${cat.id}_actual`];
-                      const performance = calculatePerformance(target, actual);
-                      return (
-                        <React.Fragment key={`${emp.id}-${cat.id}`}>
-                          <td className="p-0 border-r border-slate-200 bg-slate-50/50">
-                            {isAutoDistribute ? (
-                              <div className="w-full h-full flex items-center justify-center text-slate-500 font-semibold text-[10px] md:text-sm cursor-not-allowed select-none bg-slate-100">{target > 0 ? target : '-'}</div>
-                            ) : (
-                              <input type="number" value={emp[`${cat.id}_target`] === 0 ? '' : emp[`${cat.id}_target`]} onChange={(e) => handleInputChange(emp.id, `${cat.id}_target`, e.target.value)} className="w-full h-full text-center bg-transparent border-none outline-none text-slate-500 no-spinners text-[10px] md:text-sm" placeholder="-"/>
-                            )}
-                          </td>
-                          <td className="p-0 border-r border-slate-200">
-                            <input type="number" value={actual} onChange={(e) => handleInputChange(emp.id, `${cat.id}_actual`, e.target.value)} className="w-full h-full text-center bg-transparent border-none outline-none font-bold text-slate-900 no-spinners text-[10px] md:text-sm" placeholder="-"/>
-                          </td>
-                          <td className="p-1 border-r border-slate-200 text-center bg-slate-50/50">
-                            <div className="flex flex-col items-center justify-center pointer-events-none">
-                              {renderTrendIcon(performance.status, performance.percent)}
-                              <span className="text-[8px] md:text-[10px] text-slate-500 font-bold">{performance.percent > 0 ? `%${Math.round(performance.percent)}` : '-'}</span>
-                            </div>
-                          </td>
-                        </React.Fragment>
-                      );
-                    })}
-                    <td className="p-0 text-center no-print">
-                      <button onClick={() => removeEmployee(emp.id)} className="w-full h-full p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex justify-center items-center touch-manipulation"><Trash2 size={14} /></button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      );
+        // Sekme Değiştirme Fonksiyonu
+        window.switchTab = function(tabId, btnId) {
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-buttons button').forEach(b => b.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById(btnId).classList.add('active');
+        }
 
-      return (
-        <div className="flex flex-col md:flex-row h-full w-full bg-slate-50 font-sans text-slate-800 relative" style={{ height: '100dvh' }}>
-          
-          {toast && (
-            <div className={`fixed top-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:top-6 md:right-6 flex items-center gap-2 px-5 py-3 rounded-lg shadow-2xl text-white font-medium z-[100] transition-all no-print ${toast.type === 'success' ? 'bg-emerald-600' : toast.type === 'error' ? 'bg-rose-600' : 'bg-slate-800'}`}>
-              {toast.type === 'success' ? <CheckCircle2 size={20} /> : <Info size={20} className={toast.type === 'error' ? 'text-white' : 'text-blue-400'} />}
-              <span className="text-sm md:text-base whitespace-nowrap">{toast.message}</span>
-            </div>
-          )}
+        // Otomatik Kaydetme Fonksiyonu (Firebase'e yazar)
+        window.autoSave = function() {
+            const statusBadge = document.getElementById('sync-status');
+            statusBadge.textContent = 'Kaydediliyor...';
+            statusBadge.classList.add('saving');
 
-          {/* SİDEBAR: Tam ekranda (isFullscreen === true) tamamen gizlenir ('hidden') */}
-          <aside className={`w-full md:w-64 bg-slate-900 text-slate-300 flex-col no-print shrink-0 z-30 relative ${isFullscreen ? 'hidden' : 'flex'}`}>
-            <div className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-slate-950 border-b border-slate-800 relative z-40 shrink-0">
-              <div className="flex items-center">
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-white text-slate-900 flex items-center justify-center font-black text-lg md:text-xl rounded tracking-tighter mr-3">DR</div>
-                <span className="text-white font-bold text-base md:text-lg tracking-widest uppercase">Derimod</span>
-              </div>
-              <button className="md:hidden p-2 text-slate-300 hover:text-white" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
-                {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
-              </button>
-            </div>
+            const data = {
+                beklenenAdet: document.getElementById('beklenen-adet').value,
+                gerceklesenAdet: document.getElementById('gerceklesen-adet').value
+            };
 
-            {isMobileMenuOpen && <div className="fixed inset-0 bg-black/50 z-20 md:hidden" onClick={() => setIsMobileMenuOpen(false)} />}
+            set(ref(db, 'magaza_performans_merkez'), data).then(() => {
+                setTimeout(() => {
+                    statusBadge.textContent = 'Güncel';
+                    statusBadge.classList.remove('saving');
+                }, 500);
+            });
+        }
 
-            <nav className={`flex-1 py-4 md:py-6 px-4 space-y-2 transition-all duration-300 md:opacity-100 ${isMobileMenuOpen ? 'block absolute top-14 left-0 w-full bg-slate-900 border-b border-slate-800 pb-6 shadow-2xl z-30' : 'hidden md:block'}`}>
-              <button onClick={() => handleMenuClick('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${activeTab === 'dashboard' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800 hover:text-white text-slate-400'}`}>
-                <LayoutDashboard size={20} /> Ana Sayfa
-              </button>
-              <button onClick={() => handleMenuClick('personnels')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${activeTab === 'personnels' ? 'bg-slate-800 text-white' : 'hover:bg-slate-800 hover:text-white text-slate-400'}`}>
-                <FileText size={20} /> Personeller
-              </button>
-            </nav>
-          </aside>
-
-          {/* ANA İÇERİK ALANI */}
-          <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden w-full relative z-10">
-            
-            {/* ÜST HEADER: Tam ekranda çok daha ince ve az yer kaplar */}
-            <header className={`bg-white border-b border-slate-200 flex flex-col md:flex-row items-start md:items-center justify-between shrink-0 no-print relative z-10 gap-2 ${isFullscreen ? 'p-2' : 'p-3 md:p-4'}`}>
-              
-              <div className="w-full md:w-auto flex justify-between items-center">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base md:text-xl font-bold text-slate-800 leading-tight">
-                    {activeTab === 'dashboard' ? 'Performans Paneli' : 'Personel Detay Analizi'}
-                  </h1>
-                  {hasUnsavedChanges && (
-                    <span className="hidden sm:flex items-center gap-1 text-[10px] md:text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Kaydedilmedi
-                    </span>
-                  )}
-                </div>
-                
-                {/* Mobil için Hızlı İkonlar */}
-                <div className="flex gap-2 md:hidden">
-                  <button onClick={toggleFullScreen} className="p-1.5 bg-slate-100 text-slate-600 rounded-lg border border-slate-200" title="Tam Ekran">
-                    {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-                  </button>
-                  <button onClick={exportImage} disabled={isExporting} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg border border-indigo-200" title="Fotoğraf Çek">
-                    <ImageIcon size={16} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Gün ve Butonlar (Yan Çevirince Yan Yana Gelir) */}
-              <div className="flex flex-row flex-wrap sm:flex-nowrap items-center gap-2 w-full md:w-auto">
-                <div className="flex gap-2 bg-slate-100 p-1 rounded-lg border border-slate-200 flex-1 sm:flex-none justify-center">
-                  <div className="flex items-center gap-1">
-                    <label className="text-[10px] md:text-xs font-medium text-slate-600">Ay/Gün:</label>
-                    <input type="number" value={daysInMonth} onChange={(e) => handleTimeChange(setDaysInMonth, e.target.value)} className="w-10 md:w-12 bg-white border border-slate-300 rounded p-1 text-center font-bold text-slate-800 focus:ring-2 focus:ring-slate-900 outline-none text-xs"/>
-                  </div>
-                  <div className="w-px bg-slate-300"></div>
-                  <div className="flex items-center gap-1">
-                    <label className="text-[10px] md:text-xs font-medium text-slate-600">Bugün:</label>
-                    <input type="number" value={currentDay} onChange={(e) => handleTimeChange(setCurrentDay, e.target.value)} className="w-10 md:w-12 bg-slate-900 border border-slate-900 text-white rounded p-1 text-center font-bold focus:ring-2 focus:ring-slate-500 outline-none text-xs"/>
-                  </div>
-                </div>
-
-                <div className="flex gap-1.5 w-full sm:w-auto overflow-x-auto scrollbar-hide shrink-0">
-                  <button onClick={handleSave} className={`flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg font-medium transition-all shadow-sm text-[10px] md:text-xs whitespace-nowrap ${hasUnsavedChanges ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                    <Save size={14} /> <span className="hidden sm:inline">{hasUnsavedChanges ? 'Kaydet' : 'Kaydedildi'}</span>
-                  </button>
-                  
-                  <button onClick={exportPDF} disabled={isExporting} className="flex items-center justify-center gap-1 bg-slate-900 text-white px-2.5 py-1.5 rounded-lg font-medium transition-all shadow-sm disabled:opacity-50 text-[10px] md:text-xs whitespace-nowrap">
-                    <Download size={14} /> <span className="hidden sm:inline">PDF</span>
-                  </button>
-
-                  <button onClick={exportImage} disabled={isExporting} className="hidden md:flex items-center justify-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1.5 rounded-lg font-medium transition-all shadow-sm text-xs whitespace-nowrap">
-                    <ImageIcon size={14} /> Fotoğraf Çek
-                  </button>
-                  <button onClick={toggleFullScreen} className="hidden md:flex items-center justify-center p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg transition-all shadow-sm">
-                    {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
-                  </button>
-                </div>
-              </div>
-            </header>
-
-            {/* TABLOLARIN OLDUĞU ALAN: Tam ekranda kenar boşlukları azalır */}
-            <div className={`flex-1 overflow-y-auto min-h-0 mobile-scroll-fix ${isFullscreen ? 'p-2' : 'p-3 md:p-6'}`} id="printable-area">
-              {activeTab === 'dashboard' ? renderDashboardTab() : renderPersonnelsTab()}
-            </div>
-
-          </main>
-        </div>
-      );
-    };
-
-    const root = createRoot(document.getElementById('root'));
-    root.render(<App />);
-  </script>
+        // Anlık Veri Çekme (Firebase'den anında okur - PC ve Telefon Senkronizasyonu)
+        const performansRef = ref(db, 'magaza_performans_merkez');
+        onValue(performansRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                // Sadece kullanıcı o an o kutuya yazı yazmıyorsa veriyi güncelle (imleç kaybolmaması için)
+                if(document.activeElement.id !== 'beklenen-adet') {
+                    document.getElementById('beklenen-adet').value = data.beklenenAdet || '';
+                }
+                if(document.activeElement.id !== 'gerceklesen-adet') {
+                    document.getElementById('gerceklesen-adet').value = data.gerceklesenAdet || '';
+                }
+            }
+        });
+    </script>
 </body>
 </html>
-
-
