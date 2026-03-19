@@ -5,6 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Derimod Performans Paneli</title>
   
+  <!-- Web App Manifest & Apple Touch Icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Derimod">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0f172a">
+  
+  <!-- SVG Icon encoded as data URI for the app icon -->
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23000000' rx='112' ry='112'/%3E%3Cpath fill='%23FFFFFF' d='M448 358.4c0 14.1-11.5 25.6-25.6 25.6H89.6c-14.1 0-25.6-11.5-25.6-25.6v-25.6c0-14.1 11.5-25.6 25.6-25.6h17.1c8.3-25.4 22.8-49.3 43-69.5 25.3-25.3 58.6-39.7 94.4-40.4 20.3-.4 40.5 4.5 58.7 14.1 16.4 8.7 30.7 20.9 41.9 35.8 7.4 9.8 13.5 20.6 18.2 31.9h59.5c14.1 0 25.6 11.5 25.6 25.6v25.6z'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%23000000' rx='112' ry='112'/%3E%3Cpath fill='%23FFFFFF' d='M448 358.4c0 14.1-11.5 25.6-25.6 25.6H89.6c-14.1 0-25.6-11.5-25.6-25.6v-25.6c0-14.1 11.5-25.6 25.6-25.6h17.1c8.3-25.4 22.8-49.3 43-69.5 25.3-25.3 58.6-39.7 94.4-40.4 20.3-.4 40.5 4.5 58.7 14.1 16.4 8.7 30.7 20.9 41.9 35.8 7.4 9.8 13.5 20.6 18.2 31.9h59.5c14.1 0 25.6 11.5 25.6 25.6v25.6z'/%3E%3C/svg%3E">
+  
   <script src="https://cdn.tailwindcss.com"></script>
   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -52,7 +63,7 @@
   <div id="root"></div>
 
   <script type="text/babel" data-type="module">
-    import React, { useState, useEffect, useMemo } from 'react';
+    import React, { useState, useEffect, useMemo, Fragment } from 'react';
     import { createRoot } from 'react-dom/client';
     import { 
       Plus, Trash2, Download, TrendingUp, TrendingDown, 
@@ -74,7 +85,7 @@
 
     const DEFAULT_EMPLOYEES = [
       {
-        id: 1, name: 'Ahmet Yılmaz', workingDays: 26,
+        id: 1, name: 'Ahmet Yılmaz', workingDays: 26, workedDays: 21,
         shoes_target: 500, shoes_actual: 360,
         bags_target: 120, bags_actual: 15,
         clothing_target: 80, clothing_actual: 12,
@@ -84,7 +95,7 @@
         care_target: 200, care_actual: 18
       },
       {
-        id: 2, name: 'Ayşe Kaya', workingDays: 20,
+        id: 2, name: 'Ayşe Kaya', workingDays: 20, workedDays: 16,
         shoes_target: 400, shoes_actual: 280,
         bags_target: 100, bags_actual: 20,
         clothing_target: 70, clothing_actual: 15,
@@ -109,7 +120,19 @@
       const [activeTab, setActiveTab] = useState('dashboard');
       const [daysInMonth, setDaysInMonth] = useState(() => loadData('derimod_days', 31));
       const [currentDay, setCurrentDay] = useState(() => loadData('derimod_current', 25));
-      const [employees, setEmployees] = useState(() => loadData('derimod_employees', DEFAULT_EMPLOYEES));
+      
+      const [employees, setEmployees] = useState(() => {
+        const saved = loadData('derimod_employees', null);
+        if (saved) {
+          const globalDay = loadData('derimod_current', 25);
+          return saved.map(emp => ({
+            ...emp,
+            workedDays: emp.workedDays !== undefined ? emp.workedDays : Math.min(Number(emp.workingDays) || 0, globalDay)
+          }));
+        }
+        return DEFAULT_EMPLOYEES;
+      });
+
       const [isAutoDistribute, setIsAutoDistribute] = useState(() => loadData('derimod_auto_dist', false));
       const [storeTargets, setStoreTargets] = useState(() => loadData('derimod_store_targets', DEFAULT_STORE_TARGETS));
 
@@ -118,6 +141,7 @@
       const [toast, setToast] = useState(null);
       const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
       const [isFullscreen, setIsFullscreen] = useState(false);
+      const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, id: null });
 
       useEffect(() => {
         localStorage.setItem('derimod_days', JSON.stringify(daysInMonth));
@@ -215,19 +239,22 @@
 
       const addEmployee = () => {
         const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
-        const newEmp = { id: newId, name: '', workingDays: 26 };
+        const newEmp = { id: newId, name: '', workingDays: 26, workedDays: currentDay };
         CATEGORIES.forEach(cat => { newEmp[`${cat.id}_target`] = ''; newEmp[`${cat.id}_actual`] = ''; });
         setEmployees([...employees, newEmp]);
         markAsChanged();
         showToast('Yeni personel satırı eklendi.', 'success');
       };
 
-      const removeEmployee = (id) => {
-        if (window.confirm('Bu personeli silmek istediğinize emin misiniz?')) {
-          setEmployees(employees.filter(e => e.id !== id));
-          markAsChanged();
-          showToast('Personel başarıyla silindi.', 'info');
-        }
+      const requestRemoveEmployee = (id) => {
+        setConfirmDialog({ isOpen: true, id });
+      };
+
+      const confirmRemoveEmployee = () => {
+        setEmployees(employees.filter(e => e.id !== confirmDialog.id));
+        markAsChanged();
+        showToast('Personel başarıyla silindi.', 'info');
+        setConfirmDialog({ isOpen: false, id: null });
       };
 
       const handleInputChange = (id, field, value) => {
@@ -261,17 +288,19 @@
         return emp[`${categoryId}_target`];
       };
 
-      const calculatePerformance = (target, actual) => {
-        const numTarget = Number(target) || 0; const numActual = Number(actual) || 0;
-        const numDays = Number(daysInMonth) || 0; const numCurrent = Number(currentDay) || 0;
+      const calculatePerformance = (emp, target, actual) => {
+        const numTarget = Number(target) || 0; 
+        const numActual = Number(actual) || 0;
+        const totalDays = Number(emp.workingDays) || 0; 
+        const workedDays = Number(emp.workedDays) || 0; 
 
-        if (numTarget === 0 || numDays === 0 || numCurrent === 0) 
+        if (numTarget === 0 || totalDays === 0 || workedDays === 0) 
           return { percent: 0, status: 'none', expected: 0, dailyTarget: 0, projected: 0, difference: 0 };
 
-        const dailyTarget = numTarget / numDays;
-        const expectedToDate = dailyTarget * numCurrent;
+        const dailyTarget = numTarget / totalDays;
+        const expectedToDate = dailyTarget * workedDays;
         const performancePercent = expectedToDate === 0 ? 0 : (numActual / expectedToDate) * 100;
-        const projected = (numActual / numCurrent) * numDays;
+        const projected = (numActual / workedDays) * totalDays;
         const difference = numActual - expectedToDate;
 
         let status = 'down';
@@ -317,7 +346,10 @@
                   {emp.name || 'İsimsiz Personel'}
                 </h3>
                 <div className="text-[10px] md:text-xs bg-slate-800 border border-slate-700 px-2 py-1 rounded-lg flex items-center gap-1 font-medium">
-                  <span>Çalışma:</span> <span className="text-emerald-400 font-bold">{emp.workingDays} Gün</span>
+                  <span className="text-slate-400">Fiili / Top. Gün:</span> 
+                  <span className="text-indigo-400 font-bold">{emp.workedDays || 0}</span>
+                  <span className="text-slate-500">/</span>
+                  <span className="text-emerald-400 font-bold">{emp.workingDays || 0}</span>
                 </div>
               </div>
               
@@ -328,7 +360,7 @@
                       <th className="px-2 py-2 font-bold uppercase tracking-tight">Kategori</th>
                       <th className="px-1.5 py-2 font-bold uppercase text-center tracking-tight" title="Aylık Toplam Hedef">Aylık Hdf</th>
                       <th className="px-1.5 py-2 font-bold uppercase text-center tracking-tight" title="Günlük Satılması Gereken İdeal Adet">Günlük İdeal</th>
-                      <th className="px-1.5 py-2 font-bold uppercase text-center text-indigo-700 bg-indigo-50/50 tracking-tight" title={`${currentDay}. Gün İtibariyle Olması Gereken`}>{currentDay}. Gün Hedefi</th>
+                      <th className="px-1.5 py-2 font-bold uppercase text-center text-indigo-700 bg-indigo-50/50 tracking-tight" title={`Personelin çalıştığı fiili güne göre şu an satmış olması gereken rakam`}>Beklenen Hdf.</th>
                       <th className="px-1.5 py-2 font-bold uppercase text-center text-slate-900 bg-slate-50 tracking-tight">Gerçekleşen</th>
                       <th className="px-1.5 py-2 font-bold uppercase text-center tracking-tight">Sapma</th>
                       <th className="px-1.5 py-2 font-bold uppercase text-center tracking-tight" title="Mevcut hız ile ay sonu tahmini kapanış">Tahmini Kapanış</th>
@@ -339,18 +371,18 @@
                     {CATEGORIES.map(cat => {
                       const target = getEffectiveTarget(emp, cat.id); 
                       const actual = emp[`${cat.id}_actual`];
-                      const perf = calculatePerformance(target, actual);
+                      const perf = calculatePerformance(emp, target, actual);
                       return (
                         <tr key={cat.id} className="hover:bg-slate-50 transition-colors">
                           <td className="px-2 py-1.5 font-bold text-slate-700">{cat.label}</td>
                           <td className="px-1.5 py-1.5 text-center text-slate-500 font-medium">{target || '-'}</td>
                           <td className="px-1.5 py-1.5 text-center text-slate-500">{target > 0 ? perf.dailyTarget.toFixed(1) : '-'}</td>
-                          <td className="px-1.5 py-1.5 text-center font-bold text-indigo-700 bg-indigo-50/30">{target > 0 ? Math.round(perf.expected) : '-'}</td>
+                          <td className="px-1.5 py-1.5 text-center font-bold text-indigo-700 bg-indigo-50/30">{target > 0 && emp.workedDays > 0 ? Math.round(perf.expected) : '-'}</td>
                           <td className="px-1.5 py-1.5 text-center font-black text-slate-900 bg-slate-50/50">{actual || '-'}</td>
                           <td className={`px-1.5 py-1.5 text-center font-bold ${perf.difference >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {target > 0 ? `${perf.difference > 0 ? '+' : ''}${Math.round(perf.difference)}` : '-'}
+                            {target > 0 && emp.workedDays > 0 ? `${perf.difference > 0 ? '+' : ''}${Math.round(perf.difference)}` : '-'}
                           </td>
-                          <td className="px-1.5 py-1.5 text-center font-bold text-amber-600">{target > 0 ? Math.round(perf.projected) : '-'}</td>
+                          <td className="px-1.5 py-1.5 text-center font-bold text-amber-600">{target > 0 && emp.workedDays > 0 ? Math.round(perf.projected) : '-'}</td>
                           <td className="px-2 py-1.5 text-center">
                             <div className="flex items-center justify-center gap-1 font-bold text-slate-700">
                               {renderTrendIcon(perf.status, perf.percent)}
@@ -436,17 +468,19 @@
               <thead>
                 <tr className="bg-slate-900 text-white">
                   <th rowSpan="2" className="p-2 md:p-3 font-bold border-b border-r border-slate-700 bg-slate-900 sticky left-0 z-20 w-24 shadow-[2px_0_5px_rgba(0,0,0,0.1)]">PERSONEL</th>
-                  <th rowSpan="2" className="p-1 font-semibold text-center border-b border-r border-slate-700 bg-slate-800 w-10 text-[9px]">Ç.GÜN</th>
+                  <th colSpan="2" className="p-1 font-semibold text-center border-b border-r border-slate-700 bg-slate-800 text-[9px]">Ç.GÜN</th>
                   {CATEGORIES.map(cat => <th key={cat.id} colSpan="3" className="px-1 py-1.5 font-semibold text-center border-b border-r border-slate-700 bg-slate-800">{cat.label}</th>)}
                   <th rowSpan="2" className="p-1 font-semibold text-center border-b border-slate-700 w-8 no-print">Sil</th>
                 </tr>
                 <tr className="bg-slate-100 text-slate-600 text-[8px] md:text-[10px] uppercase font-bold">
+                  <th className="py-1 border-b border-r border-slate-200 text-center w-8" title="Aylık Toplam Çalışma Günü">Top</th>
+                  <th className="py-1 border-b border-r border-slate-200 text-center w-8 text-indigo-700" title="Şu Ana Kadar Fiili Çalıştığı Gün">Fii</th>
                   {CATEGORIES.map(cat => (
-                    <React.Fragment key={`${cat.id}-sub`}>
+                    <Fragment key={`${cat.id}-sub`}>
                       <th className="py-1 border-b border-r border-slate-200 text-center w-10">{isAutoDistribute ? <Lock size={8} className="inline mr-0.5 text-slate-400"/> : ''}Hdf</th>
                       <th className="py-1 border-b border-r border-slate-200 text-center w-10 text-slate-900">Grç</th>
                       <th className="py-1 border-b border-r border-slate-200 text-center w-10">%</th>
-                    </React.Fragment>
+                    </Fragment>
                   ))}
                 </tr>
               </thead>
@@ -459,12 +493,15 @@
                     <td className="p-0 border-r border-slate-200 bg-slate-50/30">
                       <input type="number" value={emp.workingDays} onChange={(e) => handleInputChange(emp.id, 'workingDays', e.target.value)} className={`w-full h-full px-1 py-2 text-center bg-transparent border-none outline-none font-bold no-spinners text-[10px] md:text-sm ${isAutoDistribute ? 'text-emerald-600 bg-emerald-50/30' : 'text-slate-600'}`} placeholder="-"/>
                     </td>
+                    <td className="p-0 border-r border-slate-200 bg-indigo-50/20">
+                      <input type="number" value={emp.workedDays === 0 ? '' : emp.workedDays} onChange={(e) => handleInputChange(emp.id, 'workedDays', e.target.value)} className="w-full h-full px-1 py-2 text-center bg-transparent border-none outline-none font-bold no-spinners text-[10px] md:text-sm text-indigo-700 placeholder:text-indigo-300" placeholder="0"/>
+                    </td>
                     {CATEGORIES.map(cat => {
                       const target = getEffectiveTarget(emp, cat.id); 
                       const actual = emp[`${cat.id}_actual`];
-                      const performance = calculatePerformance(target, actual);
+                      const performance = calculatePerformance(emp, target, actual);
                       return (
-                        <React.Fragment key={`${emp.id}-${cat.id}`}>
+                        <Fragment key={`${emp.id}-${cat.id}`}>
                           <td className="p-0 border-r border-slate-200 bg-slate-50/50">
                             {isAutoDistribute ? (
                               <div className="w-full h-full flex items-center justify-center text-slate-500 font-semibold text-[10px] md:text-sm cursor-not-allowed select-none bg-slate-100">{target > 0 ? target : '-'}</div>
@@ -481,11 +518,11 @@
                               <span className="text-[8px] md:text-[10px] text-slate-500 font-bold">{performance.percent > 0 ? `%${Math.round(performance.percent)}` : '-'}</span>
                             </div>
                           </td>
-                        </React.Fragment>
+                        </Fragment>
                       );
                     })}
                     <td className="p-0 text-center no-print">
-                      <button onClick={() => removeEmployee(emp.id)} className="w-full h-full p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex justify-center items-center touch-manipulation"><Trash2 size={14} /></button>
+                      <button onClick={() => requestRemoveEmployee(emp.id)} className="w-full h-full p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 flex justify-center items-center touch-manipulation"><Trash2 size={14} /></button>
                     </td>
                   </tr>
                 ))}
@@ -505,10 +542,27 @@
             </div>
           )}
 
+          {confirmDialog.isOpen && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full animate-in fade-in zoom-in duration-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 shrink-0">
+                    <Trash2 size={20} />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800">Personeli Sil</h3>
+                </div>
+                <p className="text-sm text-slate-600 mb-6 pl-1">Bu personeli silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setConfirmDialog({ isOpen: false, id: null })} className="px-4 py-2 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg font-bold transition-colors text-sm">İptal</button>
+                  <button onClick={confirmRemoveEmployee} className="px-4 py-2 text-white bg-rose-600 hover:bg-rose-700 rounded-lg font-bold transition-colors text-sm">Silmeyi Onayla</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <aside className={`w-full md:w-64 bg-slate-900 text-slate-300 flex-col no-print shrink-0 z-30 relative ${isFullscreen ? 'hidden' : 'flex'}`}>
             <div className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 bg-slate-950 border-b border-slate-800 relative z-40 shrink-0">
               
-              {/* YENİ GRAFİK LOGO VE MARKALAMA BÖLÜMÜ */}
               <div className="flex items-center">
                 <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-indigo-500 to-violet-600 text-white flex items-center justify-center rounded-lg shadow-md mr-3">
                   <BarChart2 size={20} className="md:w-[24px] md:h-[24px]" />
